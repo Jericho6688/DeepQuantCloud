@@ -63,8 +63,7 @@ services:
   db4_update_table:
     image: cyberstick/deep_quant_cloud:prod001
     depends_on:
-      db3_write_table:
-        condition: service_completed_successfully
+      - timescaledb
     volumes:
       - ./db4_update_table.py:/app/db4_update_table.py
     environment:
