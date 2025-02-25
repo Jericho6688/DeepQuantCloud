@@ -12,7 +12,7 @@ services:
       - my-network
 
   db1_create_user_db:
-    image: torch:dl01
+    image: cyberstick/deep_quant_cloud:prod001
     depends_on:
       - timescaledb
 
@@ -29,7 +29,7 @@ services:
       - my-network
 
   db2_create_table:
-    image: torch:dl01
+    image: cyberstick/deep_quant_cloud:prod001
     depends_on:
       db1_create_user_db:
         condition: service_completed_successfully
@@ -45,7 +45,7 @@ services:
       - my-network
 
   db3_write_table:
-    image: torch:dl01
+    image: cyberstick/deep_quant_cloud:prod001
     depends_on:
       db2_create_table:
         condition: service_completed_successfully
@@ -61,7 +61,7 @@ services:
       - my-network
 
   db4_update_table:
-    image: torch:dl01
+    image: cyberstick/deep_quant_cloud:prod001
     depends_on:
       db3_write_table:
         condition: service_completed_successfully
@@ -77,7 +77,7 @@ services:
       - my-network
 
 #  backtester1:
-#    image: torch:dl006
+#    image: cyberstick/deep_quant_cloud:prod001
 #    volumes:
 #      - .:/app
 #    environment:
@@ -90,7 +90,7 @@ services:
 #      - my-network
 #
 #  prediction:
-#    image: torch:dl006
+#    image: cyberstick/deep_quant_cloud:prod001
 #    volumes:
 #      - .:/app
 #    environment:
@@ -103,7 +103,7 @@ services:
 #      - my-network
 
   web:
-    image: torch:dl006
+    image: cyberstick/deep_quant_cloud:prod001
     depends_on:
       db4_update_table:
         condition: service_completed_successfully
