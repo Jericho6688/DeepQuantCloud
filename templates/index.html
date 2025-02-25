@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Backtester 火山 Web UI</title>
+  <style>
+    /* 添加 Canvas 样式 */
+    #matrix {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1; /* 放在最底层 */
+      background: transparent;
+    }
+    /* 全局样式 */
+    body {
+      position: relative;
+      z-index: 1;
+      font-family: 'Orbitron', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: radial-gradient(circle at top left, #0f0c29, #302b63, #24243e);
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1, h2, h3 {
+      color: #00FFFF;
+      text-shadow: 0 0 10px #00FFFF, 0 0 20px #00FFFF, 0 0 30px #00FFFF;
+      text-align: center;
+      max-width: 90%;
+    }
+    label {
+      display: inline-block;
+      width: 150px;
+      margin-top: 10px;
+      color: #FF6EC7;
+      max-width: 100%;
+    }
+    input, select {
+      padding: 5px;
+      margin-top: 10px;
+      border: 1px solid #FF6EC7;
+      border-radius: 4px;
+      background-color: #000;
+      color: #ffffff;
+      box-shadow: inset 0 0 5px #FF6EC7;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    input::placeholder, select::placeholder {
+      color: #FF6EC7;
+    }
+    select option {
+      background-color: #000;
+      color: #ffffff;
+    }
+    /* 策略框样式 */
+    .strategy {
+      border: 2px solid #00FFFF;
+      padding: 15px;
+      margin-bottom: 10px;
+      position: relative;
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 10px;
+      box-shadow: 0 0 10px #00FFFF;
+      max-width: 100%;
+    }
+    .delete-strategy {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background-color: #FF4040;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 14px;
+      box-shadow: 0 0 5px #FF4040;
+    }
+    .delete-strategy:hover {
+      opacity: 0.8;
+    }
+    /* 添加策略按钮样式 */
+    #add-strategy-backtest {
+      background-color: #00FFFF;
+      color: #000000;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 16px;
+      box-shadow: 0 0 5px #00FFFF;
+      margin-top: 10px;
+    }
+    #add-strategy-backtest:hover {
+      opacity: 0.8;
+    }
+    /* 输出区域样式 */
+    #output_backtest, #output_update {
+      white-space: pre-wrap;
+      border: 1px solid #00FFFF;
+      padding: 10px;
+      height: 200px;
+      overflow-y: scroll;
+      margin-top: 20px;
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 10px;
+      box-shadow: 0 0 10px #00FFFF;
+      color: #00FFFF;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    /* 图片容器样式 */
+    #image-container_backtest, #image-container_update, #image-container_prediction {
+      margin-top: 20px;
+      text-align: center;
+      max-width: 100%;
+    }
+    /* 选项卡样式 */
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 800px;
+      justify-content: center;
+    }
+    .tab {
+      flex: 1;
+      padding: 15px;
+      cursor: pointer;
+      background-color: #1f1f1f;
+      color: #00FFFF;
+      text-align: center;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      box-shadow: 0 0 5px #00FFFF;
+      transition: background-color 0.3s;
+      max-width: 33.33%;
+      box-sizing: border-box;
+    }
+    .tab:hover {
+      background-color: #00FFFF;
+      color: #000000;
+    }
+    .tab.active {
+      background-color: #24243e;
+      color: #00FFFF;
+      border-bottom: 2px solid #24243e;
+    }
+    .tab-content {
+      flex: 1;
+      border: 2px solid #00FFFF;
+      padding: 20px;
+      background-color: rgba(0, 0, 0, 0.8);
+      border-bottom-left-radius: 10px;
+      border-bottom-right-radius: 10px;
+      box-shadow: 0 0 10px #00FFFF;
+      max-width: 800px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .tab-content.hidden {
+      display: none;
+    }
+    /* 运行按钮样式 */
+    .run-button {
+      background-color: #FF6EC7;
+      color: #000000;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 16px;
+      text-align: center;
+      display: inline-block;
+      margin-top: 10px;
+      box-shadow: 0 0 5px #FF6EC7;
+    }
+    .run-button:hover {
+      opacity: 0.8;
+    }
+    /* 禁用按钮样式 */
+    .run-button:disabled {
+      background-color: #555555;
+      cursor: not-allowed;
+    }
+    /* 图片样式 */
+    #image-container_backtest img, #image-container_prediction img {
+      max-width: 100%;
+      height: auto;
+      border: 2px solid #00FFFF;
+      padding: 10px;
+      background-color: #1f1f1f;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #00FFFF;
+      margin-bottom: 10px;
+    }
+    /* 策略列表样式 */
+    #strategy-list {
+      margin-top: 20px;
+      list-style-type: none;
+      padding: 0;
+      max-width: 800px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #strategy-list li {
+      background-color: rgba(0, 0, 0, 0.6);
+      border: 2px solid #FF6EC7;
+      padding: 10px;
+      margin-bottom: 5px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px #FF6EC7;
+      color: #FF6EC7;
+      text-align: center;
+      max-width: 100%;
+    }
+    /* 播放/暂停和下一首按钮样式 */
+    #music-controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+    .music-button {
+      background-color: #00FFFF;
+      color: #000000;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 16px;
+      box-shadow: 0 0 5px #00FFFF;
+      transition: background-color 0.3s;
+    }
+    .music-button:hover {
+      opacity: 0.8;
+    }
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+      .tabs {
+        flex-direction: column;
+        max-width: 100%;
+      }
+      .tab {
+        max-width: 100%;
+        border-radius: 0;
+        margin-bottom: 5px;
+      }
+      label {
+        width: 100%;
+        margin-top: 15px;
+      }
+      input, select {
+        width: 100%;
+      }
+      .tab-content, #strategy-list, h1, h2, h3 {
+        max-width: 100%;
+      }
+    }
+  </style>
+  <!-- 引入赛博朋克风格的字体 -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- 数字雨 Canvas -->
+  <canvas id="matrix"></canvas>
+
+  <!-- 页面标题 -->
+  <h1>-Backtester- 火山</h1>
+
+  <!-- 背景音乐 -->
+  <audio id="background-music"></audio>
+
+  <!-- 播放/暂停和下一首按钮 -->
+  <div id="music-controls">
+    <button id="music-toggle-button" class="music-button" title="Play Music">▶️</button>
+    <button id="music-next-button" class="music-button" title="Next Music">⏭️</button>
+  </div>
+
+  <!-- 选项卡导航 -->
+  <div class="tabs">
+    <div class="tab active" data-tab="backtester">Backtester</div>
+    <div class="tab" data-tab="data_strategy">Data & Strategy</div>
+    <div class="tab" data-tab="prediction">Prediction</div>
+  </div>
+
+  <!-- Backtester 选项卡内容 -->
+  <div class="tab-content" id="backtester-content">
+    <!-- 回测配置表单 -->
+    <form id="backtest-form" method="post">
+      <h2>Backtest Configuration</h2>
+      <label for="start_date">Start Date:</label>
+      <input type="date" id="start_date" name="backtest[start_date]" value="2020-01-01" required><br>
+      <label for="end_date">End Date:</label>
+      <input type="date" id="end_date" name="backtest[end_date]" value="2024-10-01" required><br>
+      <label for="cash">Cash:</label>
+      <input type="number" id="cash" name="backtest[cash]" value="100000.0" step="0.01" required><br>
+      <label for="commission">Commission:</label>
+      <input type="number" id="commission" name="backtest[commission]" value="0.001" step="0.0001" required><br>
+
+      <!-- 策略列表 -->
+      <h2>Strategies</h2>
+      <div id="strategies-container_backtest">
+        <div class="strategy">
+          <h3>Strategy 1</h3>
+          <button type="button" class="delete-strategy" title="Delete Strategy">Delete Strategy</button>
+          <label for="strategy_name_0">Strategy:</label>
+          <select id="strategy_name_0" name="strategies[0][name]" required></select><br>
+          <label for="strategy_symbol_0">Target:</label>
+          <select id="strategy_symbol_0" name="strategies[0][symbol]" required></select><br>
+          <label for="strategy_percents_0">Percents:</label>
+          <input type="number" id="strategy_percents_0" name="strategies[0][percents]" value="20" min="0" max="100" required><br>
+        </div>
+      </div>
+      <!-- 添加策略按钮 -->
+      <button type="button" id="add-strategy-backtest">Add Strategy</button><br><br>
+      <!-- 运行回测按钮 -->
+      <button type="submit" class="run-button" id="run-backtest" title="Run Backtest">Run</button>
+    </form>
+    <!-- 回测输出区域 -->
+    <div id="output_backtest"></div>
+    <!-- 回测图片显示区域 -->
+    <div id="image-container_backtest"></div>
+  </div>
+
+  <!-- Data & Strategy 选项卡内容 -->
+  <div class="tab-content hidden" id="data_strategy-content">
+    <!-- 数据更新表单 -->
+    <form id="update-form" method="post">
+      <h2>Data Update</h2>
+      <button type="button" class="run-button" id="run-update" title="Update Data">Update</button>
+    </form>
+    <!-- 数据更新输出区域 -->
+    <div id="output_update"></div>
+    <!-- 可用策略列表 -->
+    <h2>Available Strategies</h2>
+    <ul id="strategy-list"></ul>
+  </div>
+
+  <!-- Prediction 选项卡内容 -->
+  <div class="tab-content hidden" id="prediction-content">
+    <!-- 预测配置表单 -->
+    <form id="prediction-form" method="post">
+      <h2>Prediction Configuration</h2>
+      <label for="target">Investment Target:</label>
+      <select id="target" name="target" required></select><br>
+      <!-- 运行预测按钮 -->
+      <button type="submit" class="run-button" id="run-prediction" title="Run Prediction">Predict</button>
+    </form>
+    <!-- 预测图像显示区域 -->
+    <div id="image-container_prediction"></div>
+  </div>
+
+  <script>
+    // 全局变量存储策略和交易品种（投资标的）选项数据
+    let strategiesOptions = [];
+    let targetsOptions = [];
+
+    // 填充策略下拉框，同时去掉 ".py" 后缀，并添加默认选项 "--select--"
+    function populateStrategySelect(selectElement) {
+      selectElement.innerHTML = '';
+      let defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = '--select--';
+      selectElement.appendChild(defaultOption);
+      strategiesOptions.forEach(opt => {
+        const text = opt.replace(/\.py$/, '');
+        let option = document.createElement('option');
+        option.value = text;
+        option.textContent = text;
+        selectElement.appendChild(option);
+      });
+    }
+
+    // 填充投资标的下拉框（完整列表，不排除其它已选），添加默认选项 "--select--"
+    function populateTargetSelect(selectElement) {
+      let newOptionsHTML = `<option value="">--select--</option>`;
+      targetsOptions.forEach(item => {
+        let value = item.schema + '.' + item.table;
+        newOptionsHTML += `<option value="${value}">${value}</option>`;
+      });
+      selectElement.innerHTML = newOptionsHTML;
+      selectElement.addEventListener('change', updateTargetDropdowns);
+      selectElement.addEventListener('focus', updateTargetDropdowns);
+    }
+
+    // 更新所有交易品种下拉框，排除其他策略中已选品种（保持唯一性）
+    function updateTargetDropdowns() {
+      const targetSelects = document.querySelectorAll('[name$="[symbol]"]');
+      targetSelects.forEach(select => {
+        const currentVal = select.value;
+        let otherSelected = new Set();
+        targetSelects.forEach(other => {
+          if (other !== select && other.value !== '') {
+            otherSelected.add(other.value);
+          }
+        });
+        let newOptionsHTML = `<option value="">--select--</option>`;
+        targetsOptions.forEach(item => {
+          let value = item.schema + '.' + item.table;
+          if (value === currentVal || !otherSelected.has(value)) {
+            newOptionsHTML += `<option value="${value}" ${value === currentVal ? 'selected' : ''}>${value}</option>`;
+          }
+        });
+        select.innerHTML = newOptionsHTML;
+      });
+    }
+
+    // 加载策略选项
+    fetch('/get_strategies')
+      .then(response => response.json())
+      .then(data => {
+        if (data.strategies) {
+          strategiesOptions = data.strategies;
+          let selectStrategy = document.getElementById('strategy_name_0');
+          if (selectStrategy) {
+            populateStrategySelect(selectStrategy);
+          }
+        } else if (data.error) {
+          console.error(data.error);
+        }
+      });
+
+    // 加载投资标的选项
+    fetch('/get_targets')
+      .then(response => response.json())
+      .then(data => {
+        if (data.tables) {
+          targetsOptions = data.tables;
+          let selectTarget = document.getElementById('strategy_symbol_0');
+          if (selectTarget) {
+            populateTargetSelect(selectTarget);
+          }
+          let predSelect = document.getElementById('target');
+          if (predSelect) {
+            populateTargetSelect(predSelect);
+          }
+        } else if (data.error) {
+          console.error(data.error);
+        }
+      });
+
+    // 选项卡切换功能
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(tc => tc.classList.add('hidden'));
+        tab.classList.add('active');
+        const tabName = tab.getAttribute('data-tab');
+        document.getElementById(`${tabName}-content`).classList.remove('hidden');
+        if (tabName === 'data_strategy') {
+          loadStrategies();
+        }
+      });
+    });
+
+    // 回测功能
+    const formBacktest = document.getElementById('backtest-form');
+    const outputBacktest = document.getElementById('output_backtest');
+    const imageContainerBacktest = document.getElementById('image-container_backtest');
+    const runButtonBacktest = document.getElementById('run-backtest');
+    let eventSourceBacktest = null;
+    let streamClosedBacktest = false;
+
+    formBacktest.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      // 检查所有策略的 percents 总和是否小于90%
+      const percentInputs = document.querySelectorAll('input[name$="[percents]"]');
+      let totalPercent = 0;
+      percentInputs.forEach(input => {
+        totalPercent += parseFloat(input.value) || 0;
+      });
+      if(totalPercent >= 90) {
+        alert(`当前策略仓位总和为 ${totalPercent}%，必须小于 90%（预留手续费及其它流出资金）`);
+        return;
+      }
+
+      if (eventSourceBacktest) {
+        alert("A backtest is already running. Please wait until it completes.");
+        return;
+      }
+      const formData = new FormData(formBacktest);
+      outputBacktest.innerText = '';
+      imageContainerBacktest.innerHTML = '';
+      runButtonBacktest.disabled = true;
+      streamClosedBacktest = false;
+      if (!isPlaying) {
+        playMusic();
+      }
+      fetch('/run_backtest', { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'Backtest started') {
+            eventSourceBacktest = new EventSource('/stream_backtest');
+            eventSourceBacktest.onmessage = (event) => {
+              if (event.data === "STREAM_CLOSED") {
+                streamClosedBacktest = true;
+                eventSourceBacktest.close();
+                eventSourceBacktest = null;
+                runButtonBacktest.disabled = false;
+                // 修改部分：先显示全局资金图，再显示分策略图
+                imageContainerBacktest.innerHTML = '';
+                // 先显示全局资金图
+                let globalImg = document.createElement('img');
+                globalImg.src = '/image_global?' + new Date().getTime();
+                imageContainerBacktest.appendChild(globalImg);
+                // 然后获取并显示分策略图
+                fetch('/get_strategy_charts')
+                  .then(response => response.json())
+                  .then(data => {
+                    if (data.strategy_charts && data.strategy_charts.length > 0) {
+                      data.strategy_charts.forEach(chart => {
+                        let img = document.createElement('img');
+                        img.src = '/image_strategy/' + chart + '?' + new Date().getTime();
+                        imageContainerBacktest.appendChild(img);
+                      });
+                    } else {
+                      imageContainerBacktest.innerText += "\nNo strategy charts available.";
+                    }
+                  });
+                return;
+              }
+              outputBacktest.innerText += event.data + "\n";
+              outputBacktest.scrollTop = outputBacktest.scrollHeight;
+            };
+            eventSourceBacktest.onerror = (error) => {
+              console.error("SSE Error:", error);
+              if (!streamClosedBacktest) {
+                outputBacktest.innerText += "Error: An error occurred during the stream.\n";
+              }
+              eventSourceBacktest.close();
+              eventSourceBacktest = null;
+              runButtonBacktest.disabled = false;
+              // 修改部分：先显示全局资金图，再显示分策略图
+              fetch('/get_strategy_charts')
+                .then(response => response.json())
+                .then(data => {
+                  imageContainerBacktest.innerHTML = '';
+                  // 先显示全局资金图
+                  let globalImg = document.createElement('img');
+                  globalImg.src = '/image_global?' + new Date().getTime();
+                  imageContainerBacktest.appendChild(globalImg);
+                  // 然后显示分策略图
+                  if (data.strategy_charts && data.strategy_charts.length > 0) {
+                    data.strategy_charts.forEach(chart => {
+                      let img = document.createElement('img');
+                      img.src = '/image_strategy/' + chart + '?' + new Date().getTime();
+                      imageContainerBacktest.appendChild(img);
+                    });
+                  } else {
+                    imageContainerBacktest.innerText += "\nNo strategy charts available.";
+                  }
+                });
+            };
+          } else if (data.error) {
+            outputBacktest.innerText += "Error: " + data.error + "\n";
+            runButtonBacktest.disabled = false;
+          }
+        })
+        .catch(error => {
+          outputBacktest.innerText += "Fetch Error: " + error + "\n";
+          runButtonBacktest.disabled = false;
+        });
+    });
+
+    // 策略增删部分：删除后重新索引
+    function reIndexStrategies() {
+      const strategiesContainer = document.getElementById('strategies-container_backtest');
+      const strategyDivs = strategiesContainer.querySelectorAll('.strategy');
+      strategyDivs.forEach((strategyDiv, index) => {
+        const header = strategyDiv.querySelector('h3');
+        if (header) header.textContent = `Strategy ${index + 1}`;
+        const selectStrategy = strategyDiv.querySelector('select[name$="[name]"]');
+        const selectTarget = strategyDiv.querySelector('select[name$="[symbol]"]');
+        const inputPercents = strategyDiv.querySelector('input[name$="[percents]"]');
+        if (selectStrategy) {
+          selectStrategy.id = `strategy_name_${index}`;
+          selectStrategy.name = `strategies[${index}][name]`;
+        }
+        if (selectTarget) {
+          selectTarget.id = `strategy_symbol_${index}`;
+          selectTarget.name = `strategies[${index}][symbol]`;
+          selectTarget.addEventListener('change', updateTargetDropdowns);
+          selectTarget.addEventListener('focus', updateTargetDropdowns);
+        }
+        if (inputPercents) {
+          inputPercents.id = `strategy_percents_${index}`;
+          inputPercents.name = `strategies[${index}][percents]`;
+        }
+      });
+      updateTargetDropdowns();
+    }
+
+    // 添加策略按钮事件
+    document.getElementById('add-strategy-backtest').addEventListener('click', () => {
+      const strategiesContainer = document.getElementById('strategies-container_backtest');
+      const index = strategiesContainer.children.length;
+      const strategyDiv = document.createElement('div');
+      strategyDiv.className = 'strategy';
+      strategyDiv.innerHTML = `
+        <h3>Strategy ${index + 1}</h3>
+        <button type="button" class="delete-strategy" title="Delete Strategy">Delete Strategy</button>
+        <label for="strategy_name_${index}">Strategy:</label>
+        <select id="strategy_name_${index}" name="strategies[${index}][name]" required></select><br>
+        <label for="strategy_symbol_${index}">Target:</label>
+        <select id="strategy_symbol_${index}" name="strategies[${index}][symbol]" required></select><br>
+        <label for="strategy_percents_${index}">Percents:</label>
+        <input type="number" id="strategy_percents_${index}" name="strategies[${index}][percents]" value="20" min="0" max="100" required><br>
+      `;
+      strategiesContainer.appendChild(strategyDiv);
+      populateStrategySelect(document.getElementById(`strategy_name_${index}`));
+      populateTargetSelect(document.getElementById(`strategy_symbol_${index}`));
+      document.getElementById(`strategy_symbol_${index}`).addEventListener('change', updateTargetDropdowns);
+      document.getElementById(`strategy_symbol_${index}`).addEventListener('focus', updateTargetDropdowns);
+      strategyDiv.querySelector('.delete-strategy').addEventListener('click', () => {
+        strategyDiv.remove();
+        reIndexStrategies();
+      });
+    });
+
+    // 为初始已有的策略项绑定删除事件
+    document.querySelectorAll('#strategies-container_backtest .delete-strategy').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.target.parentElement.remove();
+        reIndexStrategies();
+      });
+    });
+
+    // 数据更新功能
+    const formUpdate = document.getElementById('update-form');
+    const outputUpdate = document.getElementById('output_update');
+    const runButtonUpdate = document.getElementById('run-update');
+    let eventSourceUpdate = null;
+    let streamClosedUpdate = false;
+    runButtonUpdate.addEventListener('click', () => {
+      if (eventSourceUpdate) {
+        alert("A data update is already running. Please wait until it completes.");
+        return;
+      }
+      outputUpdate.innerText = '';
+      runButtonUpdate.disabled = true;
+      streamClosedUpdate = false;
+      if (!isPlaying) {
+        playMusic();
+      }
+      fetch('/run_update', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'Data update started') {
+            eventSourceUpdate = new EventSource('/stream_update');
+            eventSourceUpdate.onmessage = (event) => {
+              if (event.data === "STREAM_CLOSED") {
+                streamClosedUpdate = true;
+                eventSourceUpdate.close();
+                eventSourceUpdate = null;
+                runButtonUpdate.disabled = false;
+                return;
+              }
+              outputUpdate.innerText += event.data + "\n";
+              outputUpdate.scrollTop = outputUpdate.scrollHeight;
+            };
+            eventSourceUpdate.onerror = (error) => {
+              console.error("SSE Error:", error);
+              if (!streamClosedUpdate) {
+                outputUpdate.innerText += "Error: An error occurred during the stream.\n";
+              }
+              eventSourceUpdate.close();
+              eventSourceUpdate = null;
+              runButtonUpdate.disabled = false;
+            };
+          } else if (data.error) {
+            outputUpdate.innerText += "Error: " + data.error + "\n";
+            runButtonUpdate.disabled = false;
+          }
+        })
+        .catch(error => {
+          outputUpdate.innerText += "Fetch Error: " + error + "\n";
+          runButtonUpdate.disabled = false;
+        });
+    });
+
+    // Prediction 功能
+    const formPrediction = document.getElementById('prediction-form');
+    const imageContainerPrediction = document.getElementById('image-container_prediction');
+    const runButtonPrediction = document.getElementById('run-prediction');
+    let eventSourcePrediction = null;
+    let streamClosedPrediction = false;
+    formPrediction.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (eventSourcePrediction) {
+        alert("A prediction is already running. Please wait until it completes.");
+        return;
+      }
+      const formData = new FormData();
+      const targetValue = document.getElementById('target').value;
+      formData.append('target', targetValue);
+      imageContainerPrediction.innerHTML = '';
+      runButtonPrediction.disabled = true;
+      streamClosedPrediction = false;
+      if (!isPlaying) {
+        playMusic();
+      }
+      fetch('/run_prediction', { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'Prediction started') {
+            eventSourcePrediction = new EventSource('/stream_prediction');
+            eventSourcePrediction.onmessage = (event) => {
+              if (event.data === "PREDICTION_COMPLETED") {
+                streamClosedPrediction = true;
+                eventSourcePrediction.close();
+                eventSourcePrediction = null;
+                runButtonPrediction.disabled = false;
+                fetch('/image_prediction')
+                  .then(imgResponse => {
+                    if (imgResponse.ok) {
+                      const img = document.createElement('img');
+                      img.src = '/image_prediction?' + new Date().getTime();
+                      imageContainerPrediction.appendChild(img);
+                    } else {
+                      imageContainerPrediction.innerText = "No image available.";
+                    }
+                  })
+                  .catch(err => { imageContainerPrediction.innerText = "Error fetching image: " + err; });
+                return;
+              }
+              if (event.data.startsWith("Error:")) {
+                alert(event.data);
+                runButtonPrediction.disabled = false;
+                eventSourcePrediction.close();
+                eventSourcePrediction = null;
+                fetch('/image_prediction')
+                  .then(imgResponse => {
+                    if (imgResponse.ok) {
+                      const img = document.createElement('img');
+                      img.src = '/image_prediction?' + new Date().getTime();
+                      imageContainerPrediction.appendChild(img);
+                    } else {
+                      imageContainerPrediction.innerText = "No image available.";
+                    }
+                  })
+                  .catch(err => { imageContainerPrediction.innerText = "Error fetching image: " + err; });
+              }
+            };
+            eventSourcePrediction.onerror = (error) => {
+              console.error("SSE Error:", error);
+              if (!streamClosedPrediction) {
+                alert("Error: An error occurred during the prediction process.");
+              }
+              eventSourcePrediction.close();
+              eventSourcePrediction = null;
+              runButtonPrediction.disabled = false;
+              fetch('/image_prediction')
+                .then(imgResponse => {
+                  if (imgResponse.ok) {
+                    const img = document.createElement('img');
+                    img.src = '/image_prediction?' + new Date().getTime();
+                    imageContainerPrediction.appendChild(img);
+                  } else {
+                    imageContainerPrediction.innerText = "No image available.";
+                  }
+                })
+                .catch(err => { imageContainerPrediction.innerText = "Error fetching image: " + err; });
+            };
+          } else if (data.error) {
+            alert("Error: " + data.error);
+            runButtonPrediction.disabled = false;
+          }
+        })
+        .catch(error => {
+          alert("Fetch Error: " + error);
+          runButtonPrediction.disabled = false;
+        });
+    });
+
+    // 加载 Data & Strategy 中的策略列表
+    function loadStrategies() {
+      const strategyList = document.getElementById('strategy-list');
+      strategyList.innerHTML = '';
+      fetch('/get_strategies')
+        .then(response => response.json())
+        .then(data => {
+          if (data.strategies) {
+            if (data.strategies.length === 0) {
+              strategyList.innerHTML = '<li>No strategies available.</li>';
+            } else {
+              data.strategies.forEach(strategy => {
+                const text = strategy.replace(/\.py$/, '');
+                const li = document.createElement('li');
+                li.textContent = text;
+                strategyList.appendChild(li);
+              });
+            }
+          } else if (data.error) {
+            strategyList.innerHTML = `<li>Error: ${data.error}</li>`;
+          }
+        })
+        .catch(error => {
+          strategyList.innerHTML = `<li>Error fetching strategies: ${error}</li>`;
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const activeTab = document.querySelector('.tab.active').getAttribute('data-tab');
+      if (activeTab === 'data_strategy') {
+        loadStrategies();
+      }
+    });
+
+    // 背景音乐播放控制
+    const backgroundMusic = document.getElementById('background-music');
+    const musicToggleButton = document.getElementById('music-toggle-button');
+    const musicNextButton = document.getElementById('music-next-button');
+    let musicPlaylist = [];
+    let currentMusicIndex = 0;
+    let isPlaying = false;
+
+    function playMusic() {
+      if (musicPlaylist.length === 0) {
+        console.log("No music files available to play.");
+        return;
+      }
+      backgroundMusic.play().then(() => {
+        isPlaying = true;
+        musicToggleButton.textContent = '⏸️';
+        musicToggleButton.title = 'Pause Music';
+      }).catch(error => {
+        console.log("Playback was prevented:", error);
+      });
+    }
+
+    function playNextMusic() {
+      if (musicPlaylist.length === 0) {
+        console.log("No music files available to play.");
+        return;
+      }
+      currentMusicIndex = (currentMusicIndex + 1) % musicPlaylist.length;
+      backgroundMusic.src = musicPlaylist[currentMusicIndex];
+      if (isPlaying) {
+        backgroundMusic.play().catch(error => {
+          console.log("Playback was prevented:", error);
+        });
+      }
+    }
+
+    fetch('/get_music_files')
+      .then(response => response.json())
+      .then(data => {
+        if (data.music_files && data.music_files.length > 0) {
+          musicPlaylist = data.music_files;
+          currentMusicIndex = 0;
+          backgroundMusic.src = musicPlaylist[currentMusicIndex];
+        } else {
+          console.log("No music files found in the static directory.");
+        }
+      })
+      .catch(error => {
+        console.error("Error fetching music files:", error);
+      });
+
+    backgroundMusic.addEventListener('ended', () => {
+      isPlaying = false;
+      musicToggleButton.textContent = '▶️';
+      musicToggleButton.title = 'Play Music';
+    });
+
+    musicToggleButton.addEventListener('click', () => {
+      if (isPlaying) {
+        backgroundMusic.pause();
+        isPlaying = false;
+        musicToggleButton.textContent = '▶️';
+        musicToggleButton.title = 'Play Music';
+      } else {
+        playMusic();
+      }
+    });
+
+    musicNextButton.addEventListener('click', () => {
+      playNextMusic();
+    });
+
+    function ensureMusicPlaying() {
+      if (!isPlaying) {
+        playMusic();
+      }
+    }
+
+    const runButtons = [runButtonBacktest, runButtonUpdate, runButtonPrediction];
+    runButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        ensureMusicPlaying();
+      });
+    });
+
+    formBacktest.addEventListener('submit', () => {
+      ensureMusicPlaying();
+    });
+    formPrediction.addEventListener('submit', () => {
+      ensureMusicPlaying();
+    });
+
+    // 数字雨效果代码开始
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%^&*()*&^%';
+    const fontSize = 16;
+    let columns = Math.floor(canvas.width / fontSize);
+    const drops = Array(columns).fill(1);
+    function drawMatrixRain() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#00FFFF';
+      ctx.font = `${fontSize}px Orbitron`;
+      for (let i = 0; i < drops.length; i++) {
+        const text = characters.charAt(Math.floor(Math.random() * characters.length));
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+    setInterval(drawMatrixRain, 33);
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      columns = Math.floor(canvas.width / fontSize);
+      drops.length = 0;
+      for (let i = 0; i < columns; i++) {
+        drops.push(1);
+      }
+    });
+    // 数字雨效果代码结束
+  </script>
+</body>
+</html>

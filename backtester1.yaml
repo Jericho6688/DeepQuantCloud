@@ -1,0 +1,12 @@
+backtest:
+  cash: 100000.0
+  commission: 0.001
+  end_date: '2024-10-01'
+  start_date: '2020-01-01'
+strategies:
+- name: ma_crossover_60_20
+  percents: 20
+  symbol: crypto.eth
+- name: ml_lstm
+  percents: 20
+  symbol: stock.amzn

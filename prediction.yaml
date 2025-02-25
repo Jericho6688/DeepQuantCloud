@@ -1,0 +1,14 @@
+prediction:
+  data_length: 60
+  device: cpu
+  expected_length: 60
+  feature_columns:
+  - close
+  - volume
+  hidden_dim: 64
+  input_dim: 2
+  model_path: /app/model/model_lstm.pth
+  order_column: date
+  output_dim: 3
+  schema: crypto
+  table: btc

@@ -1,0 +1,20 @@
+tables:
+
+  - schema: "crypto"
+    table: "btc"
+  - schema: "crypto"
+    table: "eth"
+
+
+  - schema: "stock"
+    table: "vti"
+  - schema: "stock"
+    table: "aapl"
+  - schema: "stock"
+    table: "amzn"
+  - schema: "stock"
+    table: "msft"
+  - schema: "stock"
+    table: "mcd"
+  - schema: "stock"
+    table: "tsla"

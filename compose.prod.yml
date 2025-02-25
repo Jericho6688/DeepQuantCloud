@@ -1,0 +1,126 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16-oss
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    networks:
+      - my-network
+
+  db1_create_user_db:
+    image: torch:dl01
+    depends_on:
+      - timescaledb
+
+    volumes:
+      - ./db1_create_user_db.py:/app/db1_create_user_db.py
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - NEW_DB_NAME=${NEW_DB_NAME}
+      - NEW_DB_USER=${NEW_DB_USER}
+      - NEW_DB_PASSWORD=${NEW_DB_PASSWORD}
+    command: ["python", "/app/db1_create_user_db.py"]
+    networks:
+      - my-network
+
+  db2_create_table:
+    image: torch:dl01
+    depends_on:
+      db1_create_user_db:
+        condition: service_completed_successfully
+    volumes:
+      - ./db2_create_table.py:/app/db2_create_table.py
+      - ./db2_create_table.yaml:/app/db2_create_table.yaml
+    environment:
+      - NEW_DB_NAME=${NEW_DB_NAME}
+      - NEW_DB_USER=${NEW_DB_USER}
+      - NEW_DB_PASSWORD=${NEW_DB_PASSWORD}
+    command: ["python", "/app/db2_create_table.py"]
+    networks:
+      - my-network
+
+  db3_write_table:
+    image: torch:dl01
+    depends_on:
+      db2_create_table:
+        condition: service_completed_successfully
+    volumes:
+      - ./db3_write_table.py:/app/db3_write_table.py
+    environment:
+      - API_KEY=${API_KEY}
+      - NEW_DB_NAME=${NEW_DB_NAME}
+      - NEW_DB_USER=${NEW_DB_USER}
+      - NEW_DB_PASSWORD=${NEW_DB_PASSWORD}
+    command: ["python", "/app/db3_write_table.py"]
+    networks:
+      - my-network
+
+  db4_update_table:
+    image: torch:dl01
+    depends_on:
+      db3_write_table:
+        condition: service_completed_successfully
+    volumes:
+      - ./db4_update_table.py:/app/db4_update_table.py
+    environment:
+      - API_KEY=${API_KEY}
+      - NEW_DB_NAME=${NEW_DB_NAME}
+      - NEW_DB_USER=${NEW_DB_USER}
+      - NEW_DB_PASSWORD=${NEW_DB_PASSWORD}
+    command: ["python", "/app/db4_update_table.py"]
+    networks:
+      - my-network
+
+#  backtester1:
+#    image: torch:dl006
+#    volumes:
+#      - .:/app
+#    environment:
+#      - DB_HOST=timescaledb
+#      - NEW_DB_NAME=${NEW_DB_NAME}
+#      - NEW_DB_USER=${NEW_DB_USER}
+#      - NEW_DB_PASSWORD=${NEW_DB_PASSWORD}
+#    command: ["python", "/app/backtester1.py"]
+#    networks:
+#      - my-network
+#
+#  prediction:
+#    image: torch:dl006
+#    volumes:
+#      - .:/app
+#    environment:
+#      - DB_HOST=timescaledb
+#      - NEW_DB_NAME=${NEW_DB_NAME}
+#      - NEW_DB_USER=${NEW_DB_USER}
+#      - NEW_DB_PASSWORD=${NEW_DB_PASSWORD}
+#    command: ["python", "/app/prediction.py"]
+#    networks:
+#      - my-network
+
+  web:
+    image: torch:dl006
+    depends_on:
+      db4_update_table:
+        condition: service_completed_successfully
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    environment:
+      - DB_HOST=timescaledb
+      - NEW_DB_NAME=${NEW_DB_NAME}
+      - NEW_DB_USER=${NEW_DB_USER}
+      - NEW_DB_PASSWORD=${NEW_DB_PASSWORD}
+    networks:
+      - my-network
+    command: gunicorn --bind 0.0.0.0:5000 app:app
+
+networks:
+  my-network:
+volumes:
+  timescale_data:
