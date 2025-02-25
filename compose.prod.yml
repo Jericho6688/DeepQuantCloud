@@ -60,23 +60,25 @@ services:
     networks:
       - my-network
 
-  db4_update_table:
-    image: cyberstick/deep_quant_cloud:prod001
-    depends_on:
-      - timescaledb
-    volumes:
-      - ./db4_update_table.py:/app/db4_update_table.py
-    environment:
-      - API_KEY=${API_KEY}
-      - NEW_DB_NAME=${NEW_DB_NAME}
-      - NEW_DB_USER=${NEW_DB_USER}
-      - NEW_DB_PASSWORD=${NEW_DB_PASSWORD}
-    command: ["python", "/app/db4_update_table.py"]
-    networks:
-      - my-network
+#  db4_update_table:
+#    image: cyberstick/deep_quant_cloud:prod001
+#    depends_on:
+#      - timescaledb
+#    volumes:
+#      - ./db4_update_table.py:/app/db4_update_table.py
+#    environment:
+#      - API_KEY=${API_KEY}
+#      - NEW_DB_NAME=${NEW_DB_NAME}
+#      - NEW_DB_USER=${NEW_DB_USER}
+#      - NEW_DB_PASSWORD=${NEW_DB_PASSWORD}
+#    command: ["python", "/app/db4_update_table.py"]
+#    networks:
+#      - my-network
 
 #  backtester1:
 #    image: cyberstick/deep_quant_cloud:prod001
+#    depends_on:
+#      - timescaledb
 #    volumes:
 #      - .:/app
 #    environment:
@@ -90,6 +92,8 @@ services:
 #
 #  prediction:
 #    image: cyberstick/deep_quant_cloud:prod001
+#    depends_on:
+#      - timescaledb
 #    volumes:
 #      - .:/app
 #    environment:
@@ -104,8 +108,7 @@ services:
   web:
     image: cyberstick/deep_quant_cloud:prod001
     depends_on:
-      db4_update_table:
-        condition: service_completed_successfully
+      - timescaledb
     ports:
       - "5000:5000"
     volumes:
