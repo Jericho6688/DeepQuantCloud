@@ -1,0 +1,39 @@
+name: Release on Tag Push  # Workflow 的名称
+
+on:
+  push:  # 触发 Workflow 的事件是 push
+    tags:  # 只有当 push 的是标签时才触发
+      - 'v*'  # 标签的名称必须以 "v" 开头 (例如：v1.0.0, v2.5, v1.0-rc1)
+
+permissions:
+  contents: write  # 授予 Workflow 对仓库内容进行写入的权限，就是控制我github仓库的权限。 这对于创建 Release 和上传 Asset 是必需的。
+
+jobs:
+  release:  # 定义一个名为 "release" 的 Job。
+    runs-on: ubuntu-latest  # 向github申请一个ubuntu虚拟机，操作后边的程序。
+
+    steps:  
+      - name: Checkout code  # Step 的名称：检出代码
+        uses: actions/checkout@v4  # 使用 actions/checkout@v4 这个 Action。 这是一个官方的 Action，用于将仓库的代码检出到虚拟机上。
+        with:
+          fetch-depth: 0  # 获取完整的提交历史。 0 表示获取所有提交记录，而不是只获取最近的几次提交。 这对于某些需要完整历史记录的场景很有用。
+
+      - name: Package the project  # Step 的名称：打包项目
+        run: zip -r DeepQuantCloud-${GITHUB_REF#refs/tags/}.zip . -x "*.git*"  # 运行 shell 命令来打包项目。
+          # zip -r： 使用 zip 命令进行递归压缩 (包含子目录)
+          # DeepQuantCloud-${GITHUB_REF#refs/tags/}.zip：  生成的 zip 文件的名称。
+          #   - DeepQuantCloud-：  zip 文件名称的前缀，这里使用了你的项目名称。
+          #   - ${GITHUB_REF#refs/tags/}：  从 GITHUB_REF 环境变量中提取标签名称。  例如，如果 GITHUB_REF 是 "refs/tags/v1.2.3"，则这部分会提取出 "v1.2.3"。
+          #   - .zip：  zip 文件的扩展名。
+          # .：  指定要压缩的目录。  "." 表示当前目录，也就是整个仓库的代码。
+          # -x "*.git*"：  排除 ".git" 目录及其中的所有内容。  这可以避免将 Git 仓库的元数据包含在 zip 文件中。
+
+      - name: Create Release  # Step 的名称：创建 Release
+        uses: softprops/action-gh-release@v1  # 使用 softprops/action-gh-release@v1 这个 Action。  这是一个第三方 Action，用于自动创建 GitHub Release。
+        with:
+          files: |  # 指定要上传到 Release 的文件。
+            DeepQuantCloud-*.zip  #  匹配所有以 "DeepQuantCloud-" 开头，以 ".zip" 结尾的文件。  这会匹配到之前打包生成的 zip 文件。
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  #  将 GitHub Token 传递给 Action。  GitHub Token 用于授权 Action 访问 GitHub API，以便操作我的github仓库，例如创建 Release 和上传 Asset。
+          #   - GITHUB_TOKEN：  环境变量的名称。与前边的permission，前后呼应。
+          #   - ${{ secrets.GITHUB_TOKEN }}：  GitHub Actions 提供的 Secret，包含了用于身份验证的 Token。  这个 Token 具有仓库的写入权限（因为我们在 permissions 中设置了 contents: write）。
