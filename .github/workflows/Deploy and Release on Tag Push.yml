@@ -39,4 +39,4 @@ jobs:
           script: |
             cd /var/github/DeepQuantCloud
             git pull origin ${{ github.ref_name }}  # 里边是tag的名
-            docker-compose restart web
+            docker-compose -f compose.prod.yml restart web
