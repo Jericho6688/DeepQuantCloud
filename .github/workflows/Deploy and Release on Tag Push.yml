@@ -32,7 +32,7 @@ jobs:
       - name: Configure SSH
         uses: appleboy/ssh-action@v1.1.0
         with:
-          host: 47.239.82.231  # 你的服务器公网IP地址
+          host: 14.103.150.130  # 你的服务器公网IP地址
           username: root  # 你的用户名，登录服务器的时候，登录界面能看见
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22  # 你的SSH端口，一般都是22，可以登录服务器后查出来ssh端口号
