@@ -3,6 +3,7 @@ import backtrader as bt
 class empty_demo(bt.Strategy):
     params = (('data_name', ''),)
 
+
     def next(self):
         return
 
