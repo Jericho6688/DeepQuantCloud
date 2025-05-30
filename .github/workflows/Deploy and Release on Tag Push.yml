@@ -37,6 +37,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22  # 你的SSH端口，一般都是22，可以登录服务器后查出来ssh端口号
           script: |
-            cd /root/APP/github/DeepQuantCloud
+            cd /root/APP/github/DeepQuantCloud/DeepQuantCloud 
             git pull origin ${{ github.ref_name }}  # 里边是tag的名
             docker-compose -f compose.prod.yml restart web
